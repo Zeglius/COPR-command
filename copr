@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Env var to force old behavior
+UBLUE_COPR_USE_DNF5=${UBLUE_COPR_USE_DNF5:-0}
+
+# Wrapper for 'dnf5 copr'
+# Includes Workaround to append the chroot "fedora-RELEASE-ARCH"
+function dnf5_wrapper() {
+  precmd="/usr/bin/dnf5 copr"
+  if [[ $* =~ copr\s+enable && $# -eq 2 ]]; then
+    exec $precmd enable "$2" "${3:-fedora-"$(lsb_release -sr)"-"$(uname -m)"}"
+  else
+    exec $precmd "$@"
+  fi
+  return
+}
+
+if [[ -e /usr/bin/dnf5 && $UBLUE_COPR_USE_DNF5 -eq 1 ]]; then
+  dnf5_wrapper "$@"
+  exit
+fi
+
 # assign variables for author, reponame and releaseversion
 author="$(echo $2 | cut -d '/' -f1)"
 reponame="$(echo $2 | cut -d '/' -f2)"
